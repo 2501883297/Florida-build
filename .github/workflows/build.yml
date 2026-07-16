@@ -1,0 +1,68 @@
+name: Build Florida
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+
+    - name: 下载源码
+      uses: actions/checkout@v4
+
+
+    - name: 安装环境
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          git \
+          python3 \
+          python3-pip \
+          ninja-build \
+          clang \
+          cmake \
+          unzip
+
+        pip3 install meson mako
+
+
+    - name: 下载Frida源码
+      run: |
+        git clone --recursive https://github.com/frida/frida.git
+
+        cd frida
+
+        git checkout 17.15.5
+
+
+    - name: 解压Florida
+      run: |
+        unzip Florida-17.15.5.zip
+
+
+    - name: 打补丁
+      run: |
+        cd frida
+
+        for p in ../Florida-17.15.5/patches/*.patch
+        do
+          patch -p1 < $p || true
+        done
+
+
+    - name: 编译Android arm64
+      run: |
+        cd frida
+
+        make android-arm64
+
+
+    - name: 保存结果
+      uses: actions/upload-artifact@v4
+      with:
+        name: florida-server
+        path: |
+          frida/build/frida-server
